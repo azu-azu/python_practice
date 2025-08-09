@@ -45,6 +45,18 @@ can sort rows by any column in ascending or descending order.
   ```bash
   python3 bubble_sort.py
   ```
+ - Quick sort (1D minimal)
+   ```bash
+   python3 quick_sort.py
+   ```
+ - Quick sort (1D with debug logs)
+   ```bash
+   python3 quick_sort_debug.py
+   ```
+ - Quick sort (2D with debug logs)
+   ```bash
+   python3 quick_sort_2d_debug.py
+   ```
  - Visualization (requires matplotlib)
    ```bash
   # If not yet installed in your venv

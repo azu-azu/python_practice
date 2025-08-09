@@ -17,6 +17,7 @@ def bubble_sort_2d(rows, key_index=0, reverse=False):
     if not all(len(r) > key_index for r in rows):
         raise IndexError(f"key_index={key_index} が存在しない行があります")
 
+    # 比較ロジック
     def need_swap(left_key, right_key, reverse_: bool) -> bool:
         return (left_key > right_key) if not reverse_ else (left_key < right_key)
 
@@ -27,6 +28,7 @@ def bubble_sort_2d(rows, key_index=0, reverse=False):
         for j in range(n - 1 - i):
             left_key = rows[j][key_index]
             right_key = rows[j + 1][key_index]
+
             print(
                 f"  比較: {rows[j]} vs {rows[j + 1]} (key {left_key} vs {right_key})",
                 end="  ",
