@@ -1,0 +1,2 @@
+# Optional dependency for visualization
+matplotlib>=3.8

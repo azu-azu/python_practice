@@ -1,6 +1,8 @@
 ## python_sort_practice
 
-Practice repository for Bubble Sort. It includes a debug-friendly implementation for one-dimensional arrays and a two-dimensional version that can sort rows by any column in ascending or descending order.
+Practice repository for Bubble Sort.
+It includes a debug-friendly implementation for one-dimensional arrays and a two-dimensional version that
+can sort rows by any column in ascending or descending order.
 
 ### Files
 - `bubble_sort.py`: Minimal implementation (no debug output, includes a simple demo)
@@ -9,6 +11,26 @@ Practice repository for Bubble Sort. It includes a debug-friendly implementation
 
 ### Prerequisites
 - Python 3 (on macOS, use the `python3` command)
+
+### Setup (recommended: use a virtual environment)
+- macOS/Linux
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  python -m pip install --upgrade pip
+  ```
+
+- Windows (PowerShell)
+  ```powershell
+  python -m venv .venv
+  .venv\\Scripts\\Activate.ps1
+  python -m pip install --upgrade pip
+  ```
+
+- Deactivate the virtual environment (both platforms)
+  ```bash
+  deactivate
+  ```
 
 ### How to Run
 - 1D with debug logs
@@ -23,6 +45,25 @@ Practice repository for Bubble Sort. It includes a debug-friendly implementation
   ```bash
   python3 bubble_sort.py
   ```
+ - Visualization (requires matplotlib)
+   ```bash
+  # If not yet installed in your venv
+  pip install matplotlib
+
+   # Run with default data
+   python3 visualize_bubble_sort.py
+
+   # Custom data and speed
+   python3 visualize_bubble_sort.py --data 5,3,8,4,2 --interval 300
+   python3 visualize_bubble_sort.py --data 5,3,8,4,2 --reverse
+   ```
+
+### Install via requirements.txt (optional)
+If you prefer installing optional visualization dependency from a file:
+```bash
+# Inside your activated virtual environment
+pip install -r requirements.txt
+```
 
 ### Use as a Module
 - 1D array
@@ -63,3 +104,4 @@ Practice repository for Bubble Sort. It includes a debug-friendly implementation
 ### Notes
 - Both functions sort in place (destructive). If you need the original data, pass a copy such as `list.copy()`.
 - Values being compared must be mutually comparable.
+ - For visualization, floating-point values are supported. Negative values are also handled with dynamic y-limits.
