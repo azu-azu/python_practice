@@ -17,6 +17,9 @@ def bubble_sort_2d(rows, key_index=0, reverse=False):
     if not all(len(r) > key_index for r in rows):
         raise IndexError(f"key_index={key_index} が存在しない行があります")
 
+    def need_swap(left_key, right_key, reverse_: bool) -> bool:
+        return (left_key > right_key) if not reverse_ else (left_key < right_key)
+
     for i in range(n):
         print(f"🔻 {i + 1}")
         swapped = False
@@ -29,17 +32,7 @@ def bubble_sort_2d(rows, key_index=0, reverse=False):
                 end="  ",
             )
 
-            # 三項演算子：
-            # a if condition else b
-            # 条件がTrueなら a、Falseなら b
-            # need_swap = (left_key > right_key) if not reverse else (left_key < right_key)
-
-            if not reverse:  # 昇順
-                need_swap = left_key > right_key
-            else:            # 降順
-                need_swap = left_key < right_key
-
-            if need_swap:
+            if need_swap(left_key, right_key, reverse):
                 rows[j], rows[j + 1] = rows[j + 1], rows[j]
                 swapped = True
                 print(f"→ Swap！ => {rows}")
