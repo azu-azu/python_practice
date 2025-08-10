@@ -17,7 +17,9 @@ def bubble_sort_2d(rows, key_index=0, reverse=False):
     if not all(len(r) > key_index for r in rows):
         raise IndexError(f"key_index={key_index} が存在しない行があります")
 
-    # 比較ロジック
+    # 比較ロジック：swapが必要か
+    # 昇順: 「左 > 右」ならスワップが必要（小さい順に並べる）
+    # 降順: 「左 < 右」ならスワップが必要（大きい順に並べる）
     def need_swap(left_key, right_key, reverse_: bool) -> bool:
         return (left_key > right_key) if not reverse_ else (left_key < right_key)
 
@@ -25,7 +27,13 @@ def bubble_sort_2d(rows, key_index=0, reverse=False):
         print(f"🔻 {i + 1}")
         swapped = False
 
+
+        # --「隣同士を比較する」ためには n-1-i 回ループが必要 --
+        # 配列が0始まりだから、要素数nに対して最後のインデックスは n-1 になる
+        # もし range(n-i) とすると、j=n-i-1 のとき [j+1]=n-i となり、インデックスが範囲外になる
         for j in range(n - 1 - i):
+
+            # [j] と [j+1] （隣り合う要素）を比較する
             left_key = rows[j][key_index]
             right_key = rows[j + 1][key_index]
 
