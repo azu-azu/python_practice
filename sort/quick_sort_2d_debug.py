@@ -19,11 +19,11 @@ def quick_sort_2d(rows, key_index=0, reverse=False):
     print(f"  基準列: {key_index} / 並び: {order}")
     print("------------------------------")
 
-    # 前提チェック①：各行が list か tuple でなければエラー
+    # チェック①：各行が list か tuple でなければエラー
     if not all(isinstance(r, (list, tuple)) for r in rows):
         raise TypeError("全ての要素はリストまたはタプルである必要があります")
 
-    # 前提チェック②：指定列 key_index が各行にちゃんと存在するか確認。なければ IndexError。
+    # チェック②：指定列 key_index が各行にちゃんと存在するか確認。なければ IndexError。
     if not all(len(r) > key_index for r in rows):
         raise IndexError(f"key_index={key_index} が存在しない行があります")
 
@@ -39,20 +39,20 @@ def quick_sort_2d(rows, key_index=0, reverse=False):
         # 「= を含める」ので等値が多いデータは偏りやすく最悪 O(n²) に落ちやすい点に注意（実装簡単さとのトレードオフ）。
         return (ka <= kb) if not reverse else (ka >= kb)
 
-    # 末尾 high をピボットに採用
     def partition(a, low, high):
-        pivot = a[high]
+        pivot = a[high] # 末尾（high）をピボットに採用
         pivot_key = key_of(pivot)
         print(f"pivot={pivot} (key={pivot_key}) @ index {high}")
 
-        # 最初は「lowの左」に置くため -1
-        i = low - 1
+        i = low - 1 # 最初は「lowの左」に置くため -1
 
         # low..high-1 を走査して、各要素を「ピボット（のキー）と比較」
-        # Pythonは上端“含まない”から、high で high -1 までとなる
+        # Pythonは上端“含まない”から、high で high -1 までとなる（high は含まない）
         for j in range(low, high):
+
             left_row = a[j]
             left_key = key_of(left_row)
+
             op = ">=" if reverse else "<="
 
             print(f"  compare key({left_row})={left_key} {op} pivot_key({pivot_key})?", end="  ")
