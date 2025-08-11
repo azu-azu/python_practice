@@ -12,21 +12,26 @@ Nの階乗（N!）は「N × (N-1) × (N-2) × ... × 1」と定義される
 ベースケースを設定しないと、再帰関数は無限に呼び出されてしまいます。
 """
 
-def factorial(N, _first_call=True):
-	if _first_call:
-		print(f"\n計算する値: {N}")
+def factorial(N, _first_call=True, input_value=None):
+    if _first_call:
+        input_value = N
+        print(f"\n計算する値: {input_value}")
 
-	if N <= 1:
-		print(f"factorial(1) 🏁ベースケース（往路ゴール）!!")
-		return 1
+    if N <= 1:
+        print(f"‼️  {N} = ベースケース（往路ゴール）‼️")
+        return 1
 
     # 再帰呼び出し：「N の階乗 = (N-1) の階乗 × N」という再帰的な定義
     # call時には計算はせず、封筒にやることリストを入れていくイメージ
-	print(f"factorial({N}) 📩{N}を封筒に入れる")
-	result = factorial(N - 1, False) * N
+    print(f"📩 mission {N} を格納")
+    prev_result = factorial(N - 1, False, input_value)
 
-	print(f"factorial({N - 1}) * {N} = {result} 📨{N}を開封")
-	return result
+    result = prev_result * N
+    print(f"📨 mission {N} を遂行：{prev_result} * {N} = {result}")
+
+    if N == input_value:
+        print(f"\n🎉 {input_value}の階乗計算完了：{result}")
+    return result
 
 # N = int(input())
 # print(factorial(N))
@@ -42,8 +47,6 @@ def test_factorial():
 
 # テストを実行したい場合は以下を有効化
 test_factorial()
-
-
 
 # Python では、呼び出せる再帰関数の深さに上限が設定されており、デフォルトでは 1000 などの深さに設定されています。
 # この上限は、sys.getrecursionlimit() を呼び出すことで取得できます。
