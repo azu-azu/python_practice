@@ -1,5 +1,177 @@
 🗓️ 2025/08/11 \[Monday] 19:33
 
+## 🎯 **現状のロジック全体像**
+
+### **1. メインの処理フロー**
+```
+入力 → 列判定 → SELECT文生成 → UNION ALL構築 → SQL実行
+```
+
+## �� **各段階の詳細**
+
+### **第1段階: 列判定（`GetFieldSet`）**
+```vba
+Public Function GetFieldSet(ByVal sourceName As String) As Object
+    ' 各テーブルの実際の列構成を取得
+    ' SELECT * FROM [テーブル名] WHERE 1=0 で0行レコードセットを作成
+    ' Fieldsコレクションから列名を抽出
+    ' Dictionaryに格納して返す
+End Function
+```
+
+**目的**: 各テーブルが**実際に持っている列**を特定
+
+### **第2段階: SELECT文生成（`BuildAlignedSelect`）**
+```vba
+Public Function BuildAlignedSelect(ByVal sourceName As String, _
+                                   ByRef headerCols() As String, _
+                                   Optional ByVal typeSpec As Object, _
+                                   Optional ByVal isFirst As Boolean = False) As String
+```
+
+**処理内容**:
+1. **ヘッダー配列の各列**について判定
+2. **列が存在する場合**: `[列名]` または `CStr([列名]) AS [列名]`
+3. **列が存在しない場合**: `Null AS [列名]` または `CStr(Null) AS [列名]`
+
+**例**:
+```sql
+-- テーブルA（最初のSELECT、型キャスト付き）
+SELECT
+    CLng([id]) AS [id],           -- 存在する列、型キャスト
+    CStr([name]) AS [name],       -- 存在する列、型キャスト
+    CStr(Null) AS [code],         -- 存在しない列、型付きNULL
+    CCur(Null) AS [amount]        -- 存在しない列、型付きNULL
+FROM T_A
+
+-- テーブルB（2番目以降のSELECT）
+SELECT
+    [id],                         -- 存在する列
+    Null AS [name],               -- 存在しない列
+    [code],                       -- 存在する列
+    [amount]                      -- 存在する列
+FROM T_B
+```
+
+### **第3段階: 最適なソース選択（`PickRichestSource`）**
+```vba
+Private Function PickRichestSource(ByRef sources As Variant) As Long
+    ' 各テーブルの実際の列数（ヘッダー250列とは無関係）で判定
+    ' 列数が多いテーブルを最初に配置
+End Function
+```
+
+**目的**: **型の安定性**を確保するため、列数が多いテーブルを最初に配置
+
+### **第4段階: UNION ALL構築（`BuildUnionAllSql`）**
+```vba
+Public Function BuildUnionAllSql(ByRef sources As Variant, _
+                                 ByRef headerCols() As String, _
+                                 Optional ByVal typeSpec As Object, _
+                                 Optional ByVal orderByClause As String = "") As String
+```
+
+**処理内容**:
+1. **最適なソース**を最初に配置
+2. **各テーブル**のSELECT文を生成
+3. **UNION ALL**で連結
+4. **ORDER BY句**を追加
+
+## �� **型キャストの仕組み**
+
+### **型指定の構造**
+```vba
+' typeSpec: Dictionary（列名 → 型）
+t("id") = "long"        ' 整数型
+t("name") = "text"      ' 文字列型
+t("amount") = "currency" ' 通貨型
+t("created_at") = "date" ' 日付型
+```
+
+### **型キャストの適用**
+```vba
+' 最初のSELECTのみ型キャストを適用
+If isFirst And Not typeSpec Is Nothing Then
+    parts(i) = CastExpr("[" & col & "]", typeSpec, col) & " AS [" & col & "]"
+Else
+    parts(i) = "[" & col & "]"
+End If
+```
+
+**理由**: Accessでは**最初のSELECTの型**が最終結果の型になるため
+
+## 📊 **具体的な処理例**
+
+### **入力データ**
+```vba
+' ヘッダー（最終的に欲しい列）
+header = Array("id", "name", "code", "amount", "created_at")
+
+' ソーステーブル
+sources = Array("T_A", "T_B", "T_C")
+
+' 型指定
+typeSpec("id") = "long"
+typeSpec("name") = "text"
+typeSpec("amount") = "currency"
+```
+
+### **処理結果**
+```sql
+-- テーブルA（最初、型キャスト付き）
+SELECT CLng([id]) AS [id], CStr([name]) AS [name],
+       CStr(Null) AS [code], CCur(Null) AS [amount],
+       CDate(Null) AS [created_at]
+FROM T_A
+
+UNION ALL
+
+-- テーブルB
+SELECT [id], Null AS [name], [code], [amount], Null AS [created_at]
+FROM T_B
+
+UNION ALL
+
+-- テーブルC
+SELECT [id], [name], Null AS [code], Null AS [amount], [created_at]
+FROM T_C
+
+ORDER BY id, name
+```
+
+## �� **ロジックのポイント**
+
+### **1. 列の自動補完**
+- **存在しない列**は自動的に`Null AS [列名]`で補完
+- **250列の共通スキーマ**を自動生成
+
+### **2. 型の安定性**
+- **最初のSELECT**で型を決定
+- **列数が多いテーブル**を最初に配置
+
+### **3. 柔軟性**
+- **動的な列構成**に対応
+- **型指定**は任意
+- **ORDER BY句**は自由に設定
+
+### **4. 効率性**
+- **前処理1回**で列判定完了
+- **本番は流すだけ**の高速処理
+
+## **まとめ**
+
+**現状のロジックは以下の流れで動作します：**
+
+1. **列判定**: 各テーブルの実際の列構成を取得
+2. **SELECT生成**: ヘッダーに合わせて、存在列/非存在列を自動判定
+3. **最適化**: 列数が多いテーブルを最初に配置（型安定性）
+4. **統合**: UNION ALLで連結、ORDER BYでソート
+
+**これにより、列構成が異なる複数のテーブルを、統一された形式で効率的に統合できるシステム**が完成しています！
+
+
+-------------------------------------------------------------------------------------------------
+
 ## 設計方針（JP / EN）
 
 * **JP**：各テーブルはSQLで **ORDER BY** 済みにして、VBAは **k-wayマージ（Recordset同時走査）** だけ。最終は **250列の共通スキーマ配列**へ"存在列だけ"直書き。
