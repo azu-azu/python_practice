@@ -27,13 +27,10 @@ Public Function GetFieldSet(ByVal sourceName As String) As Object
 End Function
 
 Public Function BuildAlignedSelect(ByVal sourceName As String, _
-                                    ByRef headerCols() As String, _
-                                    Optional ByVal typeSpec As Object, _
-                                    Optional ByVal isFirst As Boolean = False) As String
+                                    ByRef headerCols() As String) As String
     '
-    ' ヘッダーに合わせた SELECT を自動生成
+    ' ヘッダーに合わせた SELECT を自動生成（文字列ベース）
     ' headerCols: 1..N の列名配列（最終250列）
-    ' typeSpec: 任意（列名→"text"/"long"/"double"/"date"/"currency"/"bool"）※最初のSELECT用
     '
     Dim have As Object: Set have = GetFieldSet(sourceName)
     Dim parts() As String: ReDim parts(LBound(headerCols) To UBound(headerCols))
@@ -42,19 +39,11 @@ Public Function BuildAlignedSelect(ByVal sourceName As String, _
     For i = LBound(headerCols) To UBound(headerCols)
         col = headerCols(i)
         If have.Exists(col) Then
-            ' 存在 → 値をそのまま（最初のSELECTだけ型キャストしたければここで包む）
-            If isFirst And Not typeSpec Is Nothing Then
-                parts(i) = CastExpr("[" & col & "]", typeSpec, col) & " AS [" & col & "]"
-            Else
-                parts(i) = "[" & col & "]"
-            End If
+            ' 存在 → 値をそのまま
+            parts(i) = "[" & col & "]"
         Else
             ' 無い → NULLを列名でエイリアス
-            If isFirst And Not typeSpec Is Nothing Then
-                parts(i) = CastNull(typeSpec, col) & " AS [" & col & "]"
-            Else
-                parts(i) = "Null AS [" & col & "]"
-            End If
+            parts(i) = "Null AS [" & col & "]"
         End If
     Next
 
@@ -63,21 +52,20 @@ End Function
 
 Public Function BuildUnionAllSql(ByRef sources As Variant, _
                                     ByRef headerCols() As String, _
-                                    Optional ByVal typeSpec As Object, _
                                     Optional ByVal orderByClause As String = "") As String
     '
-    ' UNION ALL を組み立て（最初のSELECTを"型の基準"に）
+    ' UNION ALL を組み立て（文字列ベース）
     '
     Dim i As Long, sqls() As String
     ReDim sqls(LBound(sources) To UBound(sources))
 
-    ' 一番"列が多い"ソースを先頭に回すと型が安定
-    Dim best As Long: best = PickRichestSource(sources, headerCols)
+    ' 一番"列が多い"ソースを先頭に回す
+    Dim best As Long: best = PickRichestSource(sources)
     ' 並べ替え（best を先頭へ）
     Dim tmp As Variant: tmp = sources(LBound(sources)): sources(LBound(sources)) = sources(best): sources(best) = tmp
 
     For i = LBound(sources) To UBound(sources)
-        sqls(i) = BuildAlignedSelect(CStr(sources(i)), headerCols, typeSpec, (i = LBound(sources)))
+        sqls(i) = BuildAlignedSelect(CStr(sources(i)), headerCols)
     Next
 
     Dim finalSql As String
@@ -87,58 +75,22 @@ End Function
 
 ' ーーー ヘルパー関数群 ーーー
 
-Private Function CastExpr(ByVal expr As String, ByVal typeSpec As Object, ByVal col As String) As String
-    '
-    ' 型キャスト式を生成
-    '
-    Dim t As String
-    If typeSpec.Exists(col) Then t = LCase$(CStr(typeSpec(col))) Else t = ""
 
-    Select Case t
-        Case "text":     CastExpr = "CStr(" & expr & ")"
-        Case "long":     CastExpr = "CLng(" & expr & ")"
-        Case "double":   CastExpr = "CDbl(" & expr & ")"
-        Case "date":     CastExpr = "CDate(" & expr & ")"
-        Case "currency": CastExpr = "CCur(" & expr & ")"
-        Case "bool":     CastExpr = "CBool(" & expr & ")"
-        Case Else:       CastExpr = expr   ' 指定なしはそのまま
-    End Select
-End Function
 
-Private Function CastNull(ByVal typeSpec As Object, ByVal col As String) As String
+Private Function PickRichestSource(ByRef sources As Variant) As Long
     '
-    ' 型付きNULLを生成
-    '
-    Dim t As String
-    If typeSpec.Exists(col) Then t = LCase$(CStr(typeSpec(col))) Else t = ""
-
-    ' 型付きNULL（Accessの型変換関数はNullをNullのまま返す＝"型を示すNull"になる）
-    Select Case t
-        Case "text":     CastNull = "CStr(Null)"
-        Case "long":     CastNull = "CLng(Null)"
-        Case "double":   CastNull = "CDbl(Null)"
-        Case "date":     CastNull = "CDate(Null)"
-        Case "currency": CastNull = "CCur(Null)"
-        Case "bool":     CastNull = "CBool(Null)"
-        Case Else:       CastNull = "Null"
-    End Select
-End Function
-
-Private Function PickRichestSource(ByRef sources As Variant, ByRef headerCols() As String) As Long
-    '
-    ' 最も列数が多いソースを選択
+    ' 各テーブルの実際の列数（ヘッダー250列とは無関係）で判定
     '
     Dim i As Long, cnt As Long, bestCnt As Long, best As Long
     best = LBound(sources): bestCnt = -1
 
     For i = LBound(sources) To UBound(sources)
         Dim have As Object: Set have = GetFieldSet(CStr(sources(i)))
-        cnt = 0
-        Dim j As Long
-        For j = LBound(headerCols) To UBound(headerCols)
-            If have.Exists(headerCols(j)) Then cnt = cnt + 1
-        Next
-        If cnt > bestCnt Then bestCnt = cnt: best = i
+        cnt = have.Count  ' そのテーブルが実際に持っている列数
+
+        If cnt > bestCnt Then
+            bestCnt = cnt: best = i
+        End If
     Next
 
     PickRichestSource = best
@@ -204,6 +156,10 @@ Public Function ExecuteUnionQuery(ByVal sql As String) As DAO.Recordset
     Set ExecuteUnionQuery = db.OpenRecordset(sql, dbOpenSnapshot)
 End Function
 
+
+
+
+'-------------------------------------------------------------------------------------------------
 ' ーーー テスト・サンプル関数群 ーーー
 
 Public Sub TestUnionAutoGenerator()
@@ -229,7 +185,7 @@ Public Sub TestUnionAutoGenerator()
 
     ' UNION ALL SQLの生成
     Dim sql As String
-    sql = BuildUnionAllSql(sources, header, typeSpec, orderByClause)
+    sql = BuildUnionAllSql(sources, header, orderByClause)
 
     ' 結果表示
     Debug.Print "=== 生成されたUNION ALL SQL ==="
@@ -271,7 +227,7 @@ Public Sub MakeUnion()
 
     ' UNION ALL SQL生成
     Dim sql As String
-    sql = BuildUnionAllSql(sources, header, t, _
+    sql = BuildUnionAllSql(sources, header, _
         "ORDER BY IIf(IsNumeric(code),0,1), IIf(IsNumeric(code),Val(code),Null), code, created_at, id")
 
     Debug.Print "=== 生成されたSQL ==="
