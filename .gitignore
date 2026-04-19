@@ -30,3 +30,8 @@ htmlcov/
 .DS_Store
 .vscode/
 .idea/
+
+tmp.md
+~$*.xls*
+*.xlsx
+*.tmp
