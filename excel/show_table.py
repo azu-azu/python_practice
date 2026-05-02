@@ -36,7 +36,15 @@ def read_sheet(
     if data_row is None:
         data_row = header_row + 1
 
+    if not path.exists():
+        raise SystemExit(f"file not found: {path}")
     wb = load_workbook(path, read_only=True, data_only=True)
+    if sheet_name and sheet_name not in wb.sheetnames:
+        wb.close()
+        raise SystemExit(
+            f"sheet '{sheet_name}' が見つかりません\n"
+            f"  利用可能: {', '.join(wb.sheetnames)}"
+        )
     ws = wb[sheet_name] if sheet_name else wb.active
     logger.info("sheet: %s", ws.title)
 
